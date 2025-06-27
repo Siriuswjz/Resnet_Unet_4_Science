@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-from ResNetEncoder import Bottleneck,ResNetEncoder
-from UNetDecoder import UNetDecoder
-from torchsummary import summary
+from src.model.ResNetEncoder import Bottleneck,ResNetEncoder
+from src.model.UNetDecoder import UNetDecoder
 
 class ResNet_UNet(nn.Module):
     def __init__(self,in_channels=3,num_classes=3,backbone='resnet50',pretrained=False):

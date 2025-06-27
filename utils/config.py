@@ -20,9 +20,11 @@ INPUT_WIDTH = 800
 INPUT_CHANNELS = 3
 OUTPUT_CLASSES = 3
 
-# 数据归一化参数 (根据你的数据集的实际统计值进行调整)
-DATA_MEAN = [0.5, 0.5, 0.5, 0.5] # 每个输入通道的均值
-DATA_STD = [0.5, 0.5, 0.5, 0.5]  # 每个输入通道的标准差
+# 归一化参数
+DATA_MEAN = [0.045719, 0.000000, 0.000299]
+DATA_STD  = [0.018075, 0.000478, 0.006906]
+DATA_MEAN = torch.tensor(DATA_MEAN).view(3,1,1)
+DATA_STD = torch.tensor(DATA_STD).view(3,1,1)
 
 # --- 模型设置 ---
 MODEL_NAME = "ResnetUnet"

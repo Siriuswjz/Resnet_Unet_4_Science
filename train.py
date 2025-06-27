@@ -3,13 +3,13 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 import datetime
 from utils.config import *
 from src.model.ResNet_UNet import ResNet_UNet
-from src.data.PatchDataset import PatchDataset
+from src.data.PatchDataset import PatchDataset,Normalize
 from utils.extract_reconstruct_patches import reconstruct_from_patches,extract_patches_with_location
 from utils.losses import get_loss_function
 import numpy as np
@@ -93,9 +93,9 @@ def eval_fn(loader, model, loss_fn, device,locations):
 
             targets = targets.to(device)
             targets = reconstruct_from_patches(pred_patches = targets,locations=locations,
-                                               full_shape=[INPUT_CHANNELS,INPUT_HEIGHT,INPUT_WIDTH])
+                                               full_shape=[INPUT_CHANNELS,INPUT_HEIGHT,INPUT_WIDTH],device = device)
             predictions = reconstruct_from_patches(pred_patches = predictions, locations=locations,
-                                                full_shape=[INPUT_CHANNELS,INPUT_HEIGHT,INPUT_WIDTH])
+                                                full_shape=[INPUT_CHANNELS,INPUT_HEIGHT,INPUT_WIDTH],device = device)
 
             loss = loss_fn(predictions, targets)
             total_loss += loss.item()
@@ -115,9 +115,10 @@ def main():
 
     # 2. 训练集和验证集
     print(f"Loading dataset from {DATA_DIR}...")
-    train_path = os.path.join(DATA_DIR, "train")
-    val_path = os.path.join(DATA_DIR, "val")
-    train_dataset = PatchDataset(train_path)
+    train_path = os.path.join(DATA_DIR, "yplus_1","train")
+    val_path = os.path.join(DATA_DIR, "yplus_1","val")
+    normalize = Normalize(DATA_MEAN, DATA_STD)
+    train_dataset = PatchDataset(train_path, transform = normalize)
     val_dataset =PatchDataset(val_path)
 
     train_loader = DataLoader(
@@ -190,7 +191,7 @@ def main():
     start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file_path = os.path.join(LOG_DIR, f"training_log_{start_time}.txt")
 
-    # 8. locations
+    # 9. locations
     img = torch.randn(1, 1400, 800)  # [C, H, W]，比如 1 通道预测热图
     _, locations = extract_patches_with_location(img, patch_size=256, stride=192)
 
@@ -225,7 +226,7 @@ def main():
             else:
                 print(f"Skipping validation for this epoch (eval interval is {EVAL_INTERVAL}).")
 
-            # 每隔一段时间保存一个通用检查点（可选）
+            # 每隔一段时间保存一个通用检查点
             # if (epoch + 1) % 5 == 0:
             #     save_checkpoint({
             #         'epoch': epoch + 1,

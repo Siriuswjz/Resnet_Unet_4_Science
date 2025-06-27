@@ -34,10 +34,10 @@ def extract_patches_with_location(tensor, patch_size=256, stride=192):
     return patches, locations
 
 
-def reconstruct_from_patches(pred_patches, locations, full_shape, patch_size=256):
+def reconstruct_from_patches(pred_patches, locations, full_shape, patch_size=256,device=torch.device('cpu')):
     C, H, W = full_shape
-    result = torch.zeros((C, H, W), dtype=torch.float32)
-    count = torch.zeros((1, H, W), dtype=torch.float32)
+    result = torch.zeros((C, H, W), dtype=torch.float32).to(device)
+    count = torch.zeros((1, H, W), dtype=torch.float32).to(device)
 
     for patch, (h, w) in zip(pred_patches, locations):
         result[:, h:h+patch_size, w:w+patch_size] += patch
