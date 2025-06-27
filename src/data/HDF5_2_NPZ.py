@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 import os
 from utils.extract_reconstruct_patches import extract_patches_with_location,reconstruct_from_patches
+import glob
 
 def save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels,patch_size=256, stride=192):
     """
@@ -47,11 +48,21 @@ def save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels,patch_size=256, st
         print(f"saved {count} patch pairs")
 
 if __name__ == "__main__":
-    hdf5_dir = "../../data/HDF5/compressible_channel_flow_data_1490_1492.hdf5"
-    save_dir = "../../data/NPZ/1490_1492"
-    y_plus_levels = ["yplus_wall_data","yplus_1_data","yplus_2_data","yplus_5_data","yplus_10_data","yplus_15_data",
-                     "yplus_30_data","yplus_70_data","yplus_100_data","yplus_200_data"]
-    save_patches_from_hdf5(hdf5_dir,save_dir,y_plus_levels)
+    hdf5_root = "../../data/HDF5"
+    save_root = "../../data/NPZ/yplus_1"
+    y_plus_levels = ["yplus_wall_data", "yplus_1_data", "yplus_2_data", "yplus_5_data",
+                     "yplus_10_data", "yplus_15_data", "yplus_30_data", "yplus_70_data",
+                     "yplus_100_data", "yplus_200_data"]
+
+    # 搜索所有 HDF5 文件
+    hdf5_paths = sorted(glob.glob(os.path.join(hdf5_root, "*.hdf5")))
+
+    for hdf5_path in hdf5_paths:
+        file_name = os.path.basename(hdf5_path).replace("compressible_channel_flow_data_", "").replace(".hdf5", "")
+        save_dir = os.path.join(save_root, file_name)
+
+        print(f"Processing {hdf5_path} -> {save_dir}")
+        save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels)
 
 
 
