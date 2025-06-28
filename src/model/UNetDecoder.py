@@ -121,9 +121,9 @@ class UNetDecoder(nn.Module):
         # encoder_features[3]: H/8, W/8, 1024C (skip from layer3)
         # encoder_features[2]: H/4, W/4, 512C (skip from layer2)
         # encoder_features[1]: H/2, W/2, 256C (skip from layer1)
-        # encoder_features[0]: H/2, W/2, 64C (skip from maxpool after conv1)
+        # encoder_features[0]: H/2, W/2, 64C (skip from conv1)
 
-        dec_x = encoder_features[4]  # 编码器最深层特征 (瓶颈)
+        dec_x = encoder_features[4]  # 编码器最深层特征
 
         # 解码器路径
         dec_x = self.up_block4(dec_x, encoder_features[3])  # Output: H/16, W/16, 1024C
@@ -142,17 +142,14 @@ class UNetDecoder(nn.Module):
 if __name__ == '__main__':
     print("--- 正在测试 UNetDecoder ---")
 
-    # 1. 定义测试参数
     batch_size = 2
     num_classes = 3
     input_height = 256
     input_width = 256
 
-    # 2. 定义 encoder_out_channels (需要与你的 ResNetEncoder 输出匹配)
-    # 基于 ResNet-50 且 maxpool stride=1 的配置
+
     encoder_output_channels = [64, 256, 512, 1024, 2048]
 
-    # 3. 模拟编码器输出的特征图 (跳跃连接)
     # 尺寸和通道数应与 ResNetEncoder 的实际输出匹配
     # encoder_features[0]: (64, 700, 400)
     # encoder_features[1]: (256, 700, 400)
@@ -160,7 +157,6 @@ if __name__ == '__main__':
     # encoder_features[3]: (1024, 175, 100)
     # encoder_features[4]: (2048, 88, 50) <-- 解码器起始输入
 
-    # 将模拟张量创建在设备上
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"模型已部署到: {device}")
 
@@ -176,15 +172,12 @@ if __name__ == '__main__':
     for i, feature in enumerate(simulated_encoder_features):
         print(f"  features[{i}]: {feature.shape}")
 
-    # 4. 实例化 UNetDecoder
     decoder = UNetDecoder(encoder_out_channels=encoder_output_channels, num_classes=num_classes)
     decoder.to(device)
 
-    # 5. 执行前向传播
     with torch.no_grad():
         decoder_output = decoder(simulated_encoder_features)
 
-    # 6. 验证最终输出维度
     print(f"\n解码器最终输出形状: {decoder_output.shape}")
 
     expected_output_shape = (batch_size, num_classes, input_height, input_width)

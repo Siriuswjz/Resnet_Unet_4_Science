@@ -1,19 +1,20 @@
 import numpy as np
 import glob
 import os
+import h5py
 
-def compute_mean_std(patch_dir):
+def compute_mean_std(hdf5_paths,y_plus):
     u_vals, v_vals, w_vals = [], [], []
 
-    patch_paths = sorted(glob.glob(os.path.join(patch_dir, "**", "*.npz"), recursive=True))
-    print(f"Found {len(patch_paths)} patches...")
+    print(f"Found {len(hdf5_paths)} hdf5 files...")
 
-    for path in patch_paths:
-        data = np.load(path)
-        feature = data['feature']  # shape: [3, H, W]
-        u_vals.append(feature[0])  # u
-        v_vals.append(feature[1])  # v
-        w_vals.append(feature[2])  # w
+    for path in hdf5_paths:
+        print(path)
+        with h5py.File(path,'r') as f:
+            group = f[y_plus]
+            u_vals.append(group["u"][:])
+            v_vals.append(group["v"][:])
+            w_vals.append(group["w"][:])
 
     # 转为大数组
     u_all = np.concatenate([u.reshape(-1) for u in u_vals])
@@ -30,5 +31,11 @@ def compute_mean_std(patch_dir):
     print(f"DATA_STD  = [{u_std:.6f}, {v_std:.6f}, {w_std:.6f}]")
 
 if __name__ == "__main__":
-    patch_dir = "../data/NPZ/yplus_1/train"
-    compute_mean_std(patch_dir)
+    hdf5_root = "../data/HDF5"
+    hdf5_paths = sorted(glob.glob(os.path.join(hdf5_root,"*.hdf5")))
+    print(f"Found {len(hdf5_paths)} hdf5 files...") # 161
+
+    y_plus_levels = ["yplus_wall_data", "yplus_1_data", "yplus_2_data", "yplus_5_data",
+                     "yplus_10_data", "yplus_15_data", "yplus_30_data", "yplus_70_data",
+                     "yplus_100_data", "yplus_200_data"]
+    compute_mean_std(hdf5_paths,y_plus_levels[1])

@@ -56,7 +56,6 @@ class Bottleneck(nn.Module):
 
         return out
 
-# Bottleneck   block_nums: [3,4,6,3]
 class ResNetEncoder(nn.Module):
     def __init__(self, block, blocks_num, in_channels=3,
                  groups=1, width_per_group=64):
@@ -139,7 +138,7 @@ class ResNetEncoder(nn.Module):
         # feature_stem = x # H/2, W/2, 64C (conv1 after relu, before maxpool)
 
         # x = self.maxpool(x)
-        features.append(x) # stage0: H/2, W/2, 64C (after maxpool)
+        features.append(x) # stage0: H/2, W/2, 64C
 
         # Layer 1
         x = self.layer1(x)

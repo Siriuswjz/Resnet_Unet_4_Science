@@ -41,7 +41,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, device, scheduler=None):
     loop = tqdm(loader, desc="Training")
     total_loss = 0.0
 
-    model.train()  # 设置模型为训练模式
+    model.train()
 
     for batch_idx, (features, targets) in enumerate(loop):
         features = features.to(device)
@@ -191,9 +191,10 @@ def main():
     start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file_path = os.path.join(LOG_DIR, f"training_log_{start_time}.txt")
 
-    # 9. locations
+    # 9. locations && losses_all
     img = torch.randn(1, 1400, 800)  # [C, H, W]，比如 1 通道预测热图
     _, locations = extract_patches_with_location(img, patch_size=256, stride=192)
+    losses_all = []
 
     with open(log_file_path, 'w') as log_f:
         log_f.write(f"Training started at: {start_time}\n")
@@ -206,6 +207,7 @@ def main():
 
             # 训练阶段
             train_loss = train_fn(train_loader, model, optimizer, loss_fn, scaler, device)
+            losses_all.append(train_loss)
             log_f.write(f"Train Loss: {train_loss:.4f}\n")
 
             # 验证阶段
