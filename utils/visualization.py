@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,10 +18,10 @@ def visualize_data(h5_path, group_name, output_path):
     print(f"正在从 '{h5_path}' 加载数据...")
 
     try:
-        with h5py.File(h5_path, 'r') as hf:
+        with (h5py.File(h5_path, 'r') as hf):
             data_group = hf[group_name]
 
-            datasets_to_plot = ['u', 'v', 'w', 'p', 'cf', 'qw']
+            datasets_to_plot = ['u', 'v', 'w', 'pressure', 'friction_coefficient_2d', 'heat_flux_2d']
             data_dict = {}
             first_valid_ds = None
             for ds_name in datasets_to_plot:
@@ -89,10 +91,9 @@ def visualize_data(h5_path, group_name, output_path):
                     ax.set_aspect('equal', adjustable='box')
 
             # --- 保存图像 ---
-            if output_path is None:
-                fname, _ = os.path.splitext(os.path.basename(h5_path))
-                output_path = f"{fname}_{group_name}_visualization.png"
-
+            if output_path:
+                filename = f"{group_name}_visualization.png"
+                output_path = os.path.join(output_path, filename)
             fig.savefig(output_path, dpi=300, bbox_inches='tight')
             print(f"图像已成功保存至: {output_path}")
             plt.close(fig)
@@ -106,14 +107,7 @@ def visualize_data(h5_path, group_name, output_path):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="从HDF5文件可视化二维流场数据",
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-    # (命令行参数部分与之前版本相同)
-    parser.add_argument('-i', '--input', type=str, required=True, help="输入的HDF5文件路径。 (必需)")
-    parser.add_argument('-g', '--group', type=str, required=True, help="HDF5文件中包含数据集的组(group)的名称。 (必需)")
-    parser.add_argument('-o', '--output', type=str, default=None, help="输出图像的文件名。(可选)")
-    args = parser.parse_args()
-
-    visualize_data(args.input, args.group, args.output)
+    hdf5_path = "D:\AI Codes\Resnet_Unet\data\HDF5\compressible_channel_flow_data_1490_1492.hdf5"
+    group_name = "yplus_wall_data"
+    output_path = "D:/AI Codes/Resnet_Unet/output/result"
+    visualize_data(hdf5_path, group_name, output_path)
