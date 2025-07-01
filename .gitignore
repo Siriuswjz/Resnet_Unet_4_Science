@@ -210,4 +210,4 @@ __marimo__/
 output/
 /data/
 *.onnx
-.dat
+*.dat
