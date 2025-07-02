@@ -13,9 +13,10 @@ class Normalize:
 
 
 class PatchDataset(Dataset):
-    def __init__(self, patch_dir,transform=None):
-        self.files = sorted(glob.glob(os.path.join(patch_dir, "*", "patch_*.npz")))
-        self.transform = transform
+    def __init__(self, patch_dir,transform_feature=None,transform_target=None):
+        self.files = sorted(glob.glob(os.path.join(patch_dir, "*.npz")))
+        self.transform_feature = transform_feature
+        self.transform_target = transform_target
 
     def __len__(self):
         return len(self.files)
@@ -24,6 +25,8 @@ class PatchDataset(Dataset):
         data = np.load(self.files[idx])
         x = torch.from_numpy(data["feature"])  # [3, 256, 256]
         y = torch.from_numpy(data["target"])   # [3, 256, 256]
-        if self.transform:
-            x = self.transform(x)
+        if self.transform_feature:
+            x = self.transform_feature(x)
+        if self.transform_target:
+            y = self.transform_target(y)
         return x.float(), y.float()

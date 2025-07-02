@@ -1,3 +1,5 @@
+import numpy as np
+
 def read_grid(grid_x, grid_y, grid_z):
     """
     读取网格文件STREAmS

@@ -1,10 +1,14 @@
 import os
 import torch
 
-# --- 项目根目录设置 ---
-# 获取当前文件所在目录的父目录，作为项目根目录
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # utils
-BASE_DIR = os.path.dirname(BASE_DIR) # Resnet_Unet
+# 项目根目录设置
+os_name = os.name
+if os_name == 'posix':
+    DATA_DIR = "/data_8T/Jinzun/NPZ"
+    BASE_DIR = "/home/Jinzun/AI Codes/Resnet_Unet_4_Science"
+else:
+    DATA_DIR = "D:\AI Codes\Resnet_Unet\data\\NPZ"
+    BASE_DIR = "D:\AI Codes\Resnet_Unet"
 
 # --- 通用设置 ---
 PROJECT_NAME = "Resnet_Unet"
@@ -12,19 +16,23 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 SEED = 42 # 随机种子，用于复现性
 NUM_WORKERS = 4
 
-# --- 数据集设置 ---
-DATA_DIR = os.path.join(BASE_DIR, "data","NPZ") # 数据存放目录
-
+# 输入属性
 INPUT_HEIGHT = 1400
 INPUT_WIDTH = 800
 INPUT_CHANNELS = 3
 OUTPUT_CLASSES = 3
 
-# 归一化参数
-DATA_MEAN = [0.045719, 0.000000, 0.000299]
-DATA_STD  = [0.018075, 0.000478, 0.006906]
-DATA_MEAN = torch.tensor(DATA_MEAN).view(3,1,1)
-DATA_STD = torch.tensor(DATA_STD).view(3,1,1)
+# 归一化参数feature
+DATA_MEAN_FEATURE = [0.045352, -0.000001, -0.000010]
+DATA_STD_FEATURE  = [0.018032, 0.000491, 0.006800]
+DATA_MEAN_FEATURE = torch.tensor(DATA_MEAN_FEATURE).view(3,1,1)
+DATA_STD_FEATURE =  torch.tensor(DATA_STD_FEATURE).view(3,1,1)
+
+# 归一化参数target
+DATA_MEAN_TARGET = [0.006131, 0.003090, 0.198331]
+DATA_STD_TARGET  = [0.002558, 0.001295, 0.006957]
+DATA_MEAN_TARGET = torch.tensor(DATA_MEAN_TARGET).view(3,1,1)
+DATA_STD_TARGET = torch.tensor(DATA_STD_TARGET).view(3,1,1)
 
 # --- 模型设置 ---
 MODEL_NAME = "ResnetUnet"
@@ -61,6 +69,3 @@ PREDICTIONS_DIR = os.path.join(OUTPUT_DIR, "predictions")
 os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 os.makedirs(PREDICTIONS_DIR, exist_ok=True)
-
-print(f"Loaded configuration for {PROJECT_NAME}")
-print(f"Running on device: {DEVICE}")
