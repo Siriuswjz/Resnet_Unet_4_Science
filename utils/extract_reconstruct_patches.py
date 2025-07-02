@@ -1,4 +1,11 @@
 import torch
+import os
+
+def extract_location_hw(file_path):
+    parts = os.path.basename(file_path).split('.')[0].split('_')
+    h = int(parts[-2])
+    w = int(parts[-1])
+    return torch.tensor([h,w],dtype=torch.int16)
 
 def extract_patches_with_location(tensor, patch_size=256, stride=192):
     """
@@ -39,7 +46,9 @@ def reconstruct_from_patches(pred_patches, locations, full_shape, patch_size=256
     result = torch.zeros((C, H, W), dtype=torch.float32).to(device)
     count = torch.zeros((1, H, W), dtype=torch.float32).to(device)
 
-    for patch, (h, w) in zip(pred_patches, locations):
+    for patch, location in zip(pred_patches, locations):
+        h=location[0]
+        w=location[1]
         result[:, h:h+patch_size, w:w+patch_size] += patch
         count[:, h:h+patch_size, w:w+patch_size] += 1.0
 

@@ -5,9 +5,17 @@ import os
 import re
 from utils.visualization_function.read_grid import read_grid
 from utils.visualization_function.plot_2d_counter import plot_2d_counter
-grid_x = "D:\AI Codes\Resnet_Unet\dxg.dat"
-grid_y = "D:\AI Codes\Resnet_Unet\dyg.dat"
-grid_z = "D:\AI Codes\Resnet_Unet\dzg.dat"
+
+os_name =os.name
+if os_name == "nt":
+    grid_x = "D:\AI Codes\Resnet_Unet\dxg.dat"
+    grid_y = "D:\AI Codes\Resnet_Unet\dyg.dat"
+    grid_z = "D:\AI Codes\Resnet_Unet\dzg.dat"
+else:
+    grid_x = "/home/Jinzun/AI Codes/Resnet_Unet_4_Science/dxg.dat"
+    grid_y = "/home/Jinzun/AI Codes/Resnet_Unet_4_Science/dyg.dat"
+    grid_z = "/home/Jinzun/AI Codes/Resnet_Unet_4_Science/dzg.dat"
+
 mesh = read_grid(grid_x, grid_y, grid_z)
 
 def visualize_h5_data(h5_path, group_name, output_dir=None):

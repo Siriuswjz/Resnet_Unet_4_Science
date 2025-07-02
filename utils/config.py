@@ -9,7 +9,7 @@ if os_name == 'posix':
 else:
     DATA_DIR = "D:\AI Codes\Resnet_Unet\data\\NPZ"
     BASE_DIR = "D:\AI Codes\Resnet_Unet"
-
+print(os_name)
 # --- 通用设置 ---
 PROJECT_NAME = "Resnet_Unet"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

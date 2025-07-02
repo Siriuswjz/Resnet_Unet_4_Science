@@ -4,7 +4,7 @@ import os
 
 if __name__ == "__main__":
     logs_dir = "../output/logs"
-    log_path = "training_log_20250630_222349.txt"
+    log_path = "training_log_20250702_174912.txt"
     log_path = os.path.join(logs_dir,log_path)
     losses_all = []
     losses_cf = []

@@ -45,7 +45,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, device, scheduler=None):
 
     model.train()
 
-    for batch_idx, (features, targets) in enumerate(loop):
+    for batch_idx, (features, targets, _) in enumerate(loop):
         features = features.to(device) # [32,3,256,256]
         targets = targets.to(device) # [32,3,256,256]
 
@@ -85,7 +85,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, device, scheduler=None):
 
     return avg_loss,avg_loss_cf,avg_loss_qw,avg_loss_p
 
-def eval_fn(loader, model, loss_fn, device,locations):
+def eval_fn(loader, model, loss_fn, device):
     """
     执行一个 epoch 的验证。
     loader (DataLoader): 验证数据加载器。
@@ -102,13 +102,12 @@ def eval_fn(loader, model, loss_fn, device,locations):
     model.eval()  # 设置模型为评估模式
 
     with torch.no_grad():  # 在评估模式下禁用梯度计算
-        for features, targets in loop:
-            assert features.shape[0] == len(locations), "Batch size 必须等于每张图的 patch 数"
+        for (features, targets,locations) in loop:
+            locations = locations.to(device)# 28 h w
             features = features.to(device)
-
             predictions = model(features)
-            targets = targets.to(device)
 
+            targets = targets.to(device)
             targets = reconstruct_from_patches(pred_patches = targets,locations=locations,
                                                full_shape=[INPUT_CHANNELS,INPUT_HEIGHT,INPUT_WIDTH],device = device)
             predictions = reconstruct_from_patches(pred_patches = predictions, locations=locations,
@@ -131,7 +130,7 @@ def eval_fn(loader, model, loss_fn, device,locations):
     avg_loss_p = total_loss_p / len(loader)
 
     print(f"Epoch Avg Validation Loss: {avg_loss:.6f}")
-    print(f"Train Loss CF: {avg_loss_cf:.6f}, QW: {avg_loss_qw:.6f}, P: {avg_loss_p:.6f}\n")
+    print(f"Validation Loss: {avg_loss_cf:.6f}, QW: {avg_loss_qw:.6f}, P: {avg_loss_p:.6f}\n")
     return avg_loss,avg_loss_cf,avg_loss_qw,avg_loss_p
 
 def main():
@@ -151,7 +150,7 @@ def main():
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=32,
+        batch_size=48,
         shuffle=True,
         num_workers=NUM_WORKERS,
         pin_memory=True  # 允许 PyTorch 在 GPU 上更快地传输数据
@@ -219,9 +218,7 @@ def main():
     start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file_path = os.path.join(LOG_DIR, f"training_log_{start_time}.txt")
 
-    # 9. locations && losses_all
-    img = torch.randn(1, 1400, 800)
-    _, locations = extract_patches_with_location(img, patch_size=256, stride=192)
+    # 9. losses_all
     losses_all = []
     losses_cf = []
     losses_qw = []
@@ -247,7 +244,7 @@ def main():
 
             # 验证阶段
             if (epoch + 1) % EVAL_INTERVAL == 0:
-                val_loss,loss_cf,loss_qw,loss_p = eval_fn(val_loader, model, loss_fn, device,locations)
+                val_loss,loss_cf,loss_qw,loss_p = eval_fn(val_loader, model, loss_fn, device)
                 log_f.write(f"Validation Loss: {val_loss:.6f}\n")
                 log_f.write(f"Validation Loss CF: {loss_cf:.6f}, QW: {loss_qw:.6f}, P: {loss_p:.6f}\n")
 
@@ -299,6 +296,6 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(SEED)
     np.random.seed(SEED)
     torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False  # 如果输入尺寸固定，可以设为True以加速
+    torch.backends.cudnn.benchmark = False
 
     main()
