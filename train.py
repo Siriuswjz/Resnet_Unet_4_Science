@@ -1,5 +1,3 @@
-# train.py
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -13,6 +11,7 @@ from src.data.PatchDataset import PatchDataset,Normalize
 from utils.extract_reconstruct_patches import reconstruct_from_patches,extract_patches_with_location
 from utils.losses import get_loss_function
 import numpy as np
+import matplotlib.pyplot as plt
 
 # --- 辅助函数：保存模型检查点 ---
 def save_checkpoint(state, filename="checkpoint.pth.tar"):
@@ -40,17 +39,23 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, device, scheduler=None):
     """
     loop = tqdm(loader, desc="Training")
     total_loss = 0.0
+    total_loss_cf = 0.0
+    total_loss_qw = 0.0
+    total_loss_p = 0.0
 
     model.train()
 
     for batch_idx, (features, targets) in enumerate(loop):
-        features = features.to(device)
-        targets = targets.to(device)
+        features = features.to(device) # [32,3,256,256]
+        targets = targets.to(device) # [32,3,256,256]
 
         # 混合精度训练
         with torch.cuda.amp.autocast():
             predictions = model(features)
-            loss = loss_fn(predictions, targets)
+            loss_cf = loss_fn(predictions[:,0], targets[:,0])
+            loss_qw = loss_fn(predictions[:,1], targets[:,1])
+            loss_p = loss_fn(predictions[:,2], targets[:,2])
+            loss = loss_cf + loss_qw + loss_p
 
         # 反向传播
         optimizer.zero_grad()
@@ -59,18 +64,26 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, device, scheduler=None):
         scaler.update()
 
         total_loss += loss.item()
+        total_loss_cf += loss_cf.item()
+        total_loss_qw += loss_qw.item()
+        total_loss_p += loss_p.item()
 
         # 更新进度条
         loop.set_postfix(loss=loss.item())
 
     avg_loss = total_loss / len(loader)
-    print(f"Epoch Avg Training Loss: {avg_loss:.4f}")
+    avg_loss_cf = total_loss_cf / len(loader)
+    avg_loss_qw = total_loss_qw / len(loader)
+    avg_loss_p = total_loss_p / len(loader)
+
+    print(f"Epoch Avg Training Loss: {avg_loss:.6f}")
+    print(f"Train Loss CF: {avg_loss_cf:.6f}, QW: {avg_loss_qw:.6f}, P: {avg_loss_p:.6f}\n")
 
     if scheduler is not None:
         scheduler.step()  # 学习率调度器更新
         print(f"Learning rate updated to: {optimizer.param_groups[0]['lr']:.6f}")
 
-    return avg_loss
+    return avg_loss,avg_loss_cf,avg_loss_qw,avg_loss_p
 
 def eval_fn(loader, model, loss_fn, device,locations):
     """
@@ -82,6 +95,9 @@ def eval_fn(loader, model, loss_fn, device,locations):
     """
     loop = tqdm(loader, desc="Validation")
     total_loss = 0.0
+    total_loss_cf = 0.0
+    total_loss_qw = 0.0
+    total_loss_p = 0.0
 
     model.eval()  # 设置模型为评估模式
 
@@ -89,37 +105,49 @@ def eval_fn(loader, model, loss_fn, device,locations):
         for features, targets in loop:
             assert features.shape[0] == len(locations), "Batch size 必须等于每张图的 patch 数"
             features = features.to(device)
-            predictions = model(features)
 
+            predictions = model(features)
             targets = targets.to(device)
+
             targets = reconstruct_from_patches(pred_patches = targets,locations=locations,
                                                full_shape=[INPUT_CHANNELS,INPUT_HEIGHT,INPUT_WIDTH],device = device)
             predictions = reconstruct_from_patches(pred_patches = predictions, locations=locations,
                                                 full_shape=[INPUT_CHANNELS,INPUT_HEIGHT,INPUT_WIDTH],device = device)
 
-            loss = loss_fn(predictions, targets)
+            loss_cf = loss_fn(predictions[:, 0], targets[:, 0])
+            loss_qw = loss_fn(predictions[:, 1], targets[:, 1])
+            loss_p = loss_fn(predictions[:, 2], targets[:, 2])
+            loss = loss_cf + loss_qw + loss_p
+            total_loss_cf += loss_cf.item()
+            total_loss_qw += loss_qw.item()
+            total_loss_p += loss_p.item()
             total_loss += loss.item()
+
             loop.set_postfix(loss=loss.item())
 
     avg_loss = total_loss / len(loader)
-    print(f"Epoch Avg Validation Loss: {avg_loss:.4f}")
+    avg_loss_cf = total_loss_cf / len(loader)
+    avg_loss_qw = total_loss_qw / len(loader)
+    avg_loss_p = total_loss_p / len(loader)
 
-    return avg_loss
+    print(f"Epoch Avg Validation Loss: {avg_loss:.6f}")
+    print(f"Train Loss CF: {avg_loss_cf:.6f}, QW: {avg_loss_qw:.6f}, P: {avg_loss_p:.6f}\n")
+    return avg_loss,avg_loss_cf,avg_loss_qw,avg_loss_p
 
-
-# --- 主函数 ---
 def main():
     # 1. 设置设备
     device = torch.device(DEVICE)
     print(f"Using device: {device}")
 
-    # 2. 训练集和验证集
+    # 2. 训练集和验证集 标准差和方差
     print(f"Loading dataset from {DATA_DIR}...")
     train_path = os.path.join(DATA_DIR, "yplus_1","train")
     val_path = os.path.join(DATA_DIR, "yplus_1","val")
-    normalize = Normalize(DATA_MEAN, DATA_STD)
-    train_dataset = PatchDataset(train_path, transform = normalize)
-    val_dataset =PatchDataset(val_path)
+    normalize_feature = Normalize(DATA_MEAN_FEATURE, DATA_STD_FEATURE)
+    normalize_target = Normalize(DATA_MEAN_TARGET, DATA_STD_TARGET)
+
+    train_dataset = PatchDataset(train_path, transform_feature = normalize_feature, transform_target = normalize_target)
+    val_dataset =PatchDataset(val_path, transform_feature = normalize_feature, transform_target = normalize_target)
 
     train_loader = DataLoader(
         train_dataset,
@@ -192,9 +220,12 @@ def main():
     log_file_path = os.path.join(LOG_DIR, f"training_log_{start_time}.txt")
 
     # 9. locations && losses_all
-    img = torch.randn(1, 1400, 800)  # [C, H, W]，比如 1 通道预测热图
+    img = torch.randn(1, 1400, 800)
     _, locations = extract_patches_with_location(img, patch_size=256, stride=192)
     losses_all = []
+    losses_cf = []
+    losses_qw = []
+    losses_p = []
 
     with open(log_file_path, 'w') as log_f:
         log_f.write(f"Training started at: {start_time}\n")
@@ -206,14 +237,19 @@ def main():
             log_f.write(f"\nEpoch {epoch + 1}/{NUM_EPOCHS}\n")
 
             # 训练阶段
-            train_loss = train_fn(train_loader, model, optimizer, loss_fn, scaler, device)
+            train_loss,loss_cf,loss_qw,loss_p = train_fn(train_loader, model, optimizer, loss_fn, scaler, device)
             losses_all.append(train_loss)
-            log_f.write(f"Train Loss: {train_loss:.4f}\n")
+            losses_cf.append(loss_cf)
+            losses_qw.append(loss_qw)
+            losses_p.append(loss_p)
+            log_f.write(f"Train Loss: {train_loss:.6f}\n")
+            log_f.write(f"Train Loss CF: {loss_cf:.6f}, QW: {loss_qw:.6f}, P: {loss_p:.6f}\n")
 
             # 验证阶段
             if (epoch + 1) % EVAL_INTERVAL == 0:
-                val_loss = eval_fn(val_loader, model, loss_fn, device,locations)
-                log_f.write(f"Validation Loss: {val_loss:.4f}\n")
+                val_loss,loss_cf,loss_qw,loss_p = eval_fn(val_loader, model, loss_fn, device,locations)
+                log_f.write(f"Validation Loss: {val_loss:.6f}\n")
+                log_f.write(f"Validation Loss CF: {loss_cf:.6f}, QW: {loss_qw:.6f}, P: {loss_p:.6f}\n")
 
                 # 保存最佳模型
                 if SAVE_BEST_MODEL and val_loss < best_val_loss:
@@ -238,6 +274,23 @@ def main():
 
         print("\n--- Training Finished ---")
         log_f.write("\n--- Training Finished ---\n")
+
+        epochs = list(range(1, len(losses_all) + 1))
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(epochs, losses_all, label="Train Total Loss", color="blue", linewidth=2)
+        plt.plot(epochs, losses_cf, label="Train CF Loss", linestyle="--", color="red")
+        plt.plot(epochs, losses_qw, label="Train QW Loss", linestyle="--", color="green")
+        plt.plot(epochs, losses_p, label="Train P Loss", linestyle="--", color="orange")
+
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Training Loss per Epoch")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig("training_loss_detail.png")
+        plt.show()
 
 
 if __name__ == "__main__":
