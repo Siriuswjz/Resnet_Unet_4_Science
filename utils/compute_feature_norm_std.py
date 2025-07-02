@@ -27,15 +27,15 @@ def compute_mean_std(hdf5_paths,y_plus):
     w_mean, w_std = np.mean(w_all), np.std(w_all)
 
     print("\n--- Normalization Statistics ---")
-    print(f"DATA_MEAN = [{u_mean:.6f}, {v_mean:.6f}, {w_mean:.6f}]")
-    print(f"DATA_STD  = [{u_std:.6f}, {v_std:.6f}, {w_std:.6f}]")
+    print(f"DATA_MEAN_FEATURE = [{u_mean:.6f}, {v_mean:.6f}, {w_mean:.6f}]")
+    print(f"DATA_STD_FEATURE  = [{u_std:.6f}, {v_std:.6f}, {w_std:.6f}]")
 
 if __name__ == "__main__":
-    hdf5_root = "../data/HDF5"
+    hdf5_root = "/data_8T/Jinzun/HDF5"
     hdf5_paths = sorted(glob.glob(os.path.join(hdf5_root,"*.hdf5")))
     print(f"Found {len(hdf5_paths)} hdf5 files...") # 161
 
     y_plus_levels = ["yplus_wall_data", "yplus_1_data", "yplus_2_data", "yplus_5_data",
                      "yplus_10_data", "yplus_15_data", "yplus_30_data", "yplus_70_data",
                      "yplus_100_data", "yplus_200_data"]
-    compute_mean_std(hdf5_paths,y_plus_levels[1])
+    compute_mean_std(hdf5_paths,y_plus_levels[4])
