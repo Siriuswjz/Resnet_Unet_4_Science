@@ -38,7 +38,7 @@ def predict_fn(loader, model, device):
             predictions_raw = predictions_normalized * STD + MEAN  # [3,1400,800]
             idx_curr = idx_start + idx*step
             dict_idx_predictions_all[idx_curr] = predictions_raw
-            np.savez(f' {output_npz_dir}/{idx_curr}.npz',prediction=predictions_raw)
+            np.savez(f'{output_npz_dir}/{idx_curr}.npz',prediction=predictions_raw.cpu().numpy())
             print(f"saved {idx_curr}.npz")
     return dict_idx_predictions_all
 

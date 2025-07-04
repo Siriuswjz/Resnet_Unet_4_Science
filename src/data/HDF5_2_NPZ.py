@@ -23,17 +23,17 @@ def save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels,patch_size=256, st
         group_name = y_plus_levels[5]
         print(f"Using {group_name}")
         group = f[group_name]
-        u = group['u'][:].astype(np.float32)
-        v = group['v'][:].astype(np.float32)
-        w  = group['w'][:].astype(np.float32)
+        u = group['u'][:].astype(np.float32) # type: ignore
+        v = group['v'][:].astype(np.float32) # type: ignore
+        w  = group['w'][:].astype(np.float32) # type: ignore
         features = np.stack([u,v,w],axis=0) # [3,1400,800]
         features_tensor = torch.from_numpy(features).float()
 
         # 输出的 cf qw p yplus_wall_data
         group = f[y_plus_levels[0]]
-        friction_coefficient_2d = group['friction_coefficient_2d'][:].astype(np.float32)
-        heat_flux_2d = group['heat_flux_2d'][:].astype(np.float32)
-        p = group['pressure'][:].astype(np.float32)
+        friction_coefficient_2d = group['friction_coefficient_2d'][:].astype(np.float32) # type: ignore
+        heat_flux_2d = group['heat_flux_2d'][:].astype(np.float32) # type: ignore
+        p = group['pressure'][:].astype(np.float32) # type: ignore
         target = np.stack([friction_coefficient_2d,heat_flux_2d,p],axis=0)
         target_tensor = torch.from_numpy(target).float()
 

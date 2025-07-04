@@ -54,9 +54,9 @@ def truth_fn(hdf5_paths,device):
 
             # 组
             group = f["yplus_wall_data"]
-            friction_coefficient_2d = group['friction_coefficient_2d'][:].astype(np.float32)
-            heat_flux_2d = group['heat_flux_2d'][:].astype(np.float32)
-            p = group['pressure'][:].astype(np.float32)
+            friction_coefficient_2d = group['friction_coefficient_2d'][:].astype(np.float32) # type: ignore
+            heat_flux_2d = group['heat_flux_2d'][:].astype(np.float32) # type: ignore
+            p = group['pressure'][:].astype(np.float32) # type: ignore
             target = np.stack([friction_coefficient_2d, heat_flux_2d, p], axis=0)
             target_tensor = torch.from_numpy(target).float().to(device)
             dict_idx_truth_all[idx] = target_tensor
