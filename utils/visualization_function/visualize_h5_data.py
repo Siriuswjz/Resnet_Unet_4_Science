@@ -29,7 +29,7 @@ plot_formulate = {'friction_coefficient_2d': r'$Cf = \frac{2 \tau_w}{\rho_b u_b^
                   'heat_flux_2d': r'$qw = \kappa \frac{\partial T}{\partial y}$'}
 
 # 真实数据可视化绘图
-def visualize_h5_data(h5_path, group_name, output_dir=None,vmin_fixed = None, vmax_fixed = None):
+def visualize_h5_data(h5_path, idx, output_dir=None,vmin_fixed = None, vmax_fixed = None):
     """
     Loads data from an HDF5 file and visualizes it using plot_2d_counter.
 
@@ -113,7 +113,7 @@ def visualize_h5_data(h5_path, group_name, output_dir=None,vmin_fixed = None, vm
         print(f"绘图过程中发生未知错误: {e}")
 
 # 模型预测绘图
-def visualize_prediction_data(prediction_raw,idx,output_dir=None,vmin_fixed = None, vmax_fixed = None):
+def visualize_prediction_data(prediction_raw,idx,output_dir=None,extrema = None):
     datasets_to_plot = ['friction_coefficient_2d', 'heat_flux_2d', 'pressure']
     data_dict = {}
     for i,ds_name in enumerate(datasets_to_plot):
@@ -138,9 +138,9 @@ def visualize_prediction_data(prediction_raw,idx,output_dir=None,vmin_fixed = No
             continue
 
         # 调用 plot_2d_counter 函数
-        if vmin_fixed and vmax_fixed:
+        if extrema:
             plot_2d_counter(data=data, mesh=mesh, title=plot_titles.get(ds_name, ds_name),
-                            ax=ax,vmin_fixed = vmin_fixed, vmax_fixed = vmax_fixed)
+                            ax=ax,vmin_fixed = extrema[i][0], vmax_fixed = extrema[i][1])
         else:
             plot_2d_counter(data=data, mesh=mesh, title=plot_titles.get(ds_name, ds_name),ax = ax)
 

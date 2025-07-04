@@ -71,10 +71,14 @@ def main():
     print("预测完毕")
     # 可视化输出目录
     output_dir = f"./output/predictions/{INPUT_Y_TYPE}_data"
+    extrema = [[-0.002,0.025],
+               [-0.001,0.012],
+               [0.142,0.240],]
     for idx,prediction in dict_idx_predictions_all.items():
         prediction = prediction.to('cpu').numpy()
         if idx == 1448:
-            visualize_prediction_data(prediction_raw = prediction,idx = idx ,output_dir=output_dir)
+            visualize_prediction_data(prediction_raw = prediction,idx = idx ,output_dir=output_dir,
+            extrema = extrema)
         else:
             visualize_prediction_data(prediction_raw = prediction,idx = idx,output_dir=output_dir)
 
