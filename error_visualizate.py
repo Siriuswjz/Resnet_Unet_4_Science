@@ -1,3 +1,4 @@
+import h5py
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -6,8 +7,11 @@ from utils.config import *
 from src.model.ResNet_UNet import ResNet_UNet
 from src.data.PatchDataset import PatchDataset,Normalize
 from utils.extract_reconstruct_patches import reconstruct_from_patches,extract_patches_with_location
-from utils.visualization_function.visualize_h5_data import visualize_prediction_data
+from utils.visualization_function.visualize_h5_data import visualize_prediction_data, visualize_error_data
 import re
+import glob
+import numpy as np
+from utils.losses import get_loss_function
 
 def predict_fn(loader, model, device):
     model.eval()
@@ -33,6 +37,30 @@ def predict_fn(loader, model, device):
             idx_curr = idx_start + idx*step
             dict_idx_predictions_all[idx_curr] = predictions_raw
     return dict_idx_predictions_all
+
+def truth_fn(hdf5_paths,device):
+    pattern = '_(\d+)_(\d+)'
+    dict_idx_truth_all = {}
+    for hdf5_path in hdf5_paths:
+        with h5py.File(hdf5_path, 'r') as f:
+            # 得到索引 比如1490
+            hdf5_path = os.path.basename(hdf5_path)
+            match = re.search(pattern, hdf5_path)
+            if match:
+                idx = int(match.group(1))
+                print(idx)
+            else:
+                print("匹配失败")
+
+            # 组
+            group = f["yplus_wall_data"]
+            friction_coefficient_2d = group['friction_coefficient_2d'][:].astype(np.float32)
+            heat_flux_2d = group['heat_flux_2d'][:].astype(np.float32)
+            p = group['pressure'][:].astype(np.float32)
+            target = np.stack([friction_coefficient_2d, heat_flux_2d, p], axis=0)
+            target_tensor = torch.from_numpy(target).float().to(device)
+            dict_idx_truth_all[idx] = target_tensor
+    return dict_idx_truth_all
 
 def main():
     # 设备
@@ -61,19 +89,36 @@ def main():
 
     dict_idx_predictions_all = predict_fn(predict_loader, model, device)
     print("预测完毕")
+
+    # 损失函数 mse
+    print(f"Using loss function: mae")
+    loss_kwargs = {}
+    loss_fn = get_loss_function('mae', **loss_kwargs)
+
+    # hdf5目录
+    os_name = os.name
+    if os_name == 'nt':
+        hdf5_root = "../../data/HDF5"
+        hdf5_paths = sorted(glob.glob(os.path.join(hdf5_root, "*.hdf5")))
+    else:
+        hdf5_root = "/data_8T/Jinzun/HDF5"
+        hdf5_paths = sorted(glob.glob(os.path.join(hdf5_root, "*.hdf5")))
+    dict_idx_truth_all = truth_fn(hdf5_paths, device)
+    print("真实数据保存完毕")
+
     # 可视化输出目录
-    output_dir = f"./output/predictions/{INPUT_Y_TYPE}_data"
-    for idx,prediction in dict_idx_predictions_all.items():
-        prediction = prediction.to('cpu').numpy()
+    output_dir = f"./output/error_visualization/{INPUT_Y_TYPE}_data"
+    for idx in dict_idx_predictions_all:
         if idx == 1448:
-            visualize_prediction_data(prediction_raw = prediction,idx = idx ,output_dir=output_dir)
-        else:
-            visualize_prediction_data(prediction_raw = prediction,idx = idx,output_dir=output_dir)
+            prediction = dict_idx_predictions_all[idx]
+            truth = dict_idx_truth_all[idx]
+            error_cf = (truth[0]- prediction[0]) / loss_fn(truth[0], prediction[0])
+            error_qw = (truth[1]- prediction[1]) / loss_fn(truth[1], prediction[1])
+            error_p = (truth[2]- prediction[2]) / loss_fn(truth[2], prediction[2])
+            error_data = torch.stack([error_cf, error_qw, error_p], dim=0).to('cpu').numpy()
+            visualize_error_data(error_data = error_data, idx = idx ,output_dir=output_dir,yplus = INPUT_Y_TYPE)
+
+
 
 if __name__ == "__main__":
     main()
-
-
-
-
-

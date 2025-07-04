@@ -140,8 +140,8 @@ def main():
 
     # 2. 训练集和验证集 标准差和方差
     print(f"Loading dataset from {DATA_DIR}...")
-    train_path = os.path.join(DATA_DIR, "yplus_1","train")
-    val_path = os.path.join(DATA_DIR, "yplus_1","val")
+    train_path = os.path.join(DATA_DIR, INPUT_Y_TYPE,"train")
+    val_path = os.path.join(DATA_DIR, INPUT_Y_TYPE,"val")
     normalize_feature = Normalize(DATA_MEAN_FEATURE, DATA_STD_FEATURE)
     normalize_target = Normalize(DATA_MEAN_TARGET, DATA_STD_TARGET)
 
@@ -282,11 +282,12 @@ def main():
 
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
-        plt.title("Training Loss per Epoch")
+        plt.title(f"{INPUT_Y_TYPE} Training Loss per Epoch")
+
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig("training_loss_detail.png")
+        plt.savefig(f"{INPUT_Y_TYPE}_training_loss.png")
         plt.show()
 
 

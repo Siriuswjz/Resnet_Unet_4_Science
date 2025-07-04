@@ -20,7 +20,8 @@ def save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels,patch_size=256, st
     # 读取 hdf5 中的 cf、qw、p
     with h5py.File(hdf5_path, 'r') as f:
         # 输入的u v w yplus_10_data
-        group_name = y_plus_levels[4]
+        group_name = y_plus_levels[5]
+        print(f"Using {group_name}")
         group = f[group_name]
         u = group['u'][:].astype(np.float32)
         v = group['v'][:].astype(np.float32)
@@ -53,30 +54,54 @@ if __name__ == "__main__":
     y_plus_levels = ["yplus_wall_data", "yplus_1_data", "yplus_2_data", "yplus_5_data",
                      "yplus_10_data", "yplus_15_data", "yplus_30_data", "yplus_70_data",
                      "yplus_100_data", "yplus_200_data"]
+
+    yplus = y_plus_levels[5]
     if os_name == 'nt':
         hdf5_root = "../../data/HDF5"
-        save_root = "../../data/NPZ/yplus_10"
+        save_root = f"../../data/NPZ/{yplus}"
         # 搜索所有 HDF5 文件
         hdf5_paths = sorted(glob.glob(os.path.join(hdf5_root, "*.hdf5")))
 
-        for hdf5_path in hdf5_paths:
-            file_name = os.path.basename(hdf5_path).replace("compressible_channel_flow_data_", "").replace(".hdf5", "")
-            save_dir = os.path.join(save_root, file_name)
 
-            print(f"Processing {hdf5_path} -> {save_dir}")
-            save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels)
     else:
         hdf5_root = "/data_8T/Jinzun/HDF5"
-        save_root = "/data_8T/Jinzun/NPZ/yplus_10"
+        save_root = f"/data_8T/Jinzun/NPZ/{yplus}"
         # 搜索所有 HDF5 文件
         hdf5_paths = sorted(glob.glob(os.path.join(hdf5_root, "*.hdf5")))
 
-        for hdf5_path in hdf5_paths:
-            file_name = os.path.basename(hdf5_path).replace("compressible_channel_flow_data_", "").replace(".hdf5", "")
-            save_dir = os.path.join(save_root, file_name)
+    # 划分 80% train + 20% val
+    num_files = len(hdf5_paths)
+    split_idx = int(num_files * 0.8)
 
-            print(f"Processing {hdf5_path} -> {save_dir}")
-            save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels)
+    train_paths = hdf5_paths[:split_idx]
+    val_paths = hdf5_paths[split_idx:]
+
+    print(f"Total files: {num_files}")
+    print(f"Train files: {len(train_paths)}")
+    print(f"Val files: {len(val_paths)}")
+
+    # 创建子目录
+    train_dir = os.path.join(save_root, "train")
+    val_dir = os.path.join(save_root, "val")
+
+    os.makedirs(train_dir, exist_ok=True)
+    os.makedirs(val_dir, exist_ok=True)
+
+    # 处理 train
+    for hdf5_path in train_paths:
+        file_name = os.path.basename(hdf5_path).replace("compressible_channel_flow_data_", "").replace(".hdf5", "")
+        save_dir = os.path.join(train_dir, file_name)
+
+        print(f"[Train] Processing {hdf5_path} -> {save_dir}")
+        save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels)
+
+    # 处理 val
+    for hdf5_path in val_paths:
+        file_name = os.path.basename(hdf5_path).replace("compressible_channel_flow_data_", "").replace(".hdf5", "")
+        save_dir = os.path.join(val_dir, file_name)
+
+        print(f"[Val] Processing {hdf5_path} -> {save_dir}")
+        save_patches_from_hdf5(hdf5_path, save_dir,y_plus_levels)
 
 
 

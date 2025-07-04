@@ -4,7 +4,8 @@ import os
 
 if __name__ == "__main__":
     logs_dir = "../output/logs"
-    log_path = "training_log_20250702_174912.txt"
+    log_path = "training_log_20250702_222439.txt"
+    input_yplus = 15
     log_path = os.path.join(logs_dir,log_path)
     losses_all = []
     losses_cf = []
@@ -58,9 +59,11 @@ if __name__ == "__main__":
 
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.title("Training Loss per Epoch")
+    plt.title(f"yplus = {input_yplus} training loss per epoch")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("training_loss_detail.png")
+    png_name = f"yplus_{input_yplus}_training_loss.png"
+    png_path = os.path.join("../output/plots/",png_name)
+    plt.savefig(png_path)
     plt.show()

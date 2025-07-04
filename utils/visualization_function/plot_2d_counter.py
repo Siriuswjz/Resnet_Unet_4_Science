@@ -1,19 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_2d_counter(data, mesh, region=None, title=None, ax=None):
+def plot_2d_counter(data, mesh, region=None, title=None, ax=None, formulate=None, vmin_fixed=None, vmax_fixed=None):
     """
-    Plot a section of the counter data.(2D)
+    绘制计数器数据的二维截面图。
+
+    参数:
+    data (np.array): 要绘制的二维数据。
+    mesh (tuple): 包含网格信息的元组，例如 (x_coords, y_coords, z_coords)。
+    region (tuple, optional): (x_start, x_end, y_start, y_end) 用于指定数据的一个子区域。
+    title (str, optional): 图表的标题。
+    ax (matplotlib.axes.Axes, optional): 用于绘图的 Matplotlib 坐标轴对象。
+    formulate (str, optional): 图表的备用标题。
+    vmin_fixed (float, optional): 颜色条的固定最小值。如果为 None，则使用数据的最小值。
+    vmax_fixed (float, optional): 颜色条的固定最大值。如果为 None，则使用数据的最大值。
     """
-    from matplotlib.colors import LinearSegmentedColormap, ListedColormap
-    # 定义连续型颜色映射
-    colors = ['#F0F0F0', '#E79A90', '#B02425']
-    cmap = LinearSegmentedColormap.from_list('custom', colors)
-    # 定义离散型颜色映射
-    colors = ['#F0EFED', '#E79A90', '#B02425']
-    cmap1 = ListedColormap(colors)
-    ## -------------------------------------------------------------------------------------
-    # 如果没有提供region，则使用整个数据范围
+
+    # 如果没有提供 region，则使用整个数据范围
     if region is None:
         x_start, x_end = 0, data.shape[0]
         y_start, y_end = 0, data.shape[1]
@@ -22,50 +25,53 @@ def plot_2d_counter(data, mesh, region=None, title=None, ax=None):
     ## -------------------------------------------------------------------------------------
     # 检查数据维度是否匹配
     if data.ndim != 2 or len(mesh[0]) != data.shape[0] or len(mesh[2]) != data.shape[1]:
-        raise ValueError(f"Invalid error: {data.ndim} {data.shape} != {len(mesh[0]), len(mesh[2])}")
+        raise ValueError(f"无效错误: {data.ndim} {data.shape} != {len(mesh[0]), len(mesh[2])}")
     else:
         x_section = mesh[0][x_start:x_end]
         y_section = mesh[2][y_start:y_end]
         data_section = data[x_start:x_end, y_start:y_end]
+
         X, Y = np.meshgrid(x_section, y_section)
-        pcm = ax.pcolormesh(X, Y, data_section.T, cmap='coolwarm', shading='auto')
+
+        # 确定 pcolormesh 的 vmin 和 vmax
+        # 如果 vmin_fixed 不为空，则使用它，否则使用 data_section 的最小值
+        vmin = vmin_fixed if vmin_fixed is not None else np.min(data_section)
+        # 如果 vmax_fixed 不为空，则使用它，否则使用 data_section 的最大值
+        vmax = vmax_fixed if vmax_fixed is not None else np.max(data_section)
+
+        # 将 vmin 和 vmax 传递给 pcolormesh
+        pcm = ax.pcolormesh(X, Y, data_section.T, cmap='coolwarm', shading='auto', vmin=vmin, vmax=vmax)
+
     ## -------------------------------------------------------------------------------------
-    # 添加颜色条 调整位置
+    # 添加颜色条并调整其位置
     fig = ax.get_figure()
-    cbar = fig.colorbar(pcm, ax=ax, pad=0.02, fraction=0.016)  # ,label=f'{title} count colorbar')
+    cbar = fig.colorbar(pcm, ax=ax, pad=0.02, fraction=0.016)
 
     # 设置颜色条的刻度位置和标签
-    vmin, vmax = np.min(data_section), np.max(data_section)
+    # 使用 pcolormesh 中实际使用的 vmin 和 vmax 来设置刻度位置
     tick_positions = np.linspace(vmin, vmax, 5)  # 生成5个刻度位置
-    # 格式化为整数并统一长度修改位数
     tick_labels = []
     for tick in tick_positions:
+        # 格式化标签以保持一致的长度，并处理正负数对齐问题
         if tick >= 0:
-            # 添加一个类似负号的隐藏标记，这里使用一个空格和减号组合来模拟
-            tick_labels.append(f" {tick:.3f}")
+            tick_labels.append(f" {tick:.3f}") # 正数前加一个空格用于对齐
         else:
             tick_labels.append(f"{tick:.3f}")
-    # 特别处理负零的情况
-    # tick_labels = [label if label != ("-0" or "-0.0" or "-0.00" )  else "0.00" for label in tick_labels]
 
-    cbar.set_ticks(tick_positions)  # 设置刻度位置
-    cbar.set_ticklabels(tick_labels)  # 设置刻度标签
+    cbar.set_ticks(tick_positions)
+    cbar.set_ticklabels(tick_labels)
 
     # 设置刻度值显示但不显示刻度线
-    cbar.outline.set_visible(False)  # 隐藏颜色条的边框
+    cbar.outline.set_visible(False)
     cbar.ax.xaxis.set_tick_params(which='both', length=0)
     cbar.ax.yaxis.set_tick_params(which='both', length=0)
 
-    # # 使用FixedLocator来固定刻度的位置
-    # cbar.locator = FixedLocator(cbar.get_ticks())
-    # cbar.update_ticks()
-    #
-    # # 设置刻度标签为空字符串(那一条横线)
-    # cbar.ax.set_xticklabels([''] * len(cbar.ax.get_xticks()))
-    # # cbar.set_label('Colorbar Title', rotation=0, labelpad=15)
+    ax.set_aspect('equal') # 保持 x 轴和 y 轴的单位长度相等，防止图形变形
 
-    ax.set_aspect('equal')  # 保持确保 x 轴和 y 轴的单位长度相等,防止图形变形:避免图形在绘制时被拉伸或压缩
-    # # 设置图表标题,有传入标题这个参数,默认不显示设置成空字符串
-    ax.set_title(f"{title}")
+    # 设置图表标题
+    if formulate:
+        ax.set_title(f"{formulate}")
+    else:
+        ax.set_title(f"{title}")
 
     return cbar
