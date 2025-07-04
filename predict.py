@@ -8,6 +8,7 @@ from src.data.PatchDataset import PatchDataset,Normalize
 from utils.extract_reconstruct_patches import reconstruct_from_patches,extract_patches_with_location
 from utils.visualization_function.visualize_h5_data import visualize_prediction_data
 import re
+import numpy as np
 
 def predict_fn(loader, model, device):
     model.eval()
@@ -32,6 +33,8 @@ def predict_fn(loader, model, device):
             predictions_raw = predictions_normalized * STD + MEAN  # [3,1400,800]
             idx_curr = idx_start + idx*step
             dict_idx_predictions_all[idx_curr] = predictions_raw
+            np.savez(f'./output/predictions/npz/{idx_curr}.npz',prediction=predictions_raw)
+            print(f"saved {idx_curr}.npz")
     return dict_idx_predictions_all
 
 def main():
