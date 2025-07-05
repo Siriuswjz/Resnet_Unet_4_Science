@@ -20,7 +20,7 @@ def save_patches_from_hdf5(hdf5_path, save_dir, y_plus_levels,patch_size=256, st
     # 读取 hdf5 中的 cf、qw、p
     with h5py.File(hdf5_path, 'r') as f:
         # 输入的u v w yplus_10_data
-        group_name = y_plus_levels[5]
+        group_name = y_plus_levels[8]
         print(f"Using {group_name}")
         group = f[group_name]
         u = group['u'][:].astype(np.float32) # type: ignore
@@ -55,7 +55,7 @@ if __name__ == "__main__":
                      "yplus_10_data", "yplus_15_data", "yplus_30_data", "yplus_70_data",
                      "yplus_100_data", "yplus_200_data"]
 
-    yplus = y_plus_levels[5]
+    yplus = y_plus_levels[8]
     if os_name == 'nt':
         hdf5_root = "../../data/HDF5"
         save_root = f"../../data/NPZ/{yplus}"

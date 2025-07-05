@@ -24,10 +24,13 @@ INPUT_CHANNELS = 3
 OUTPUT_CLASSES = 3
 
 # 归一化参数feature
-DATA_MEAN_FEATURE = [0.378425, -0.000372, -0.000095]
-DATA_STD_FEATURE  = [0.118740, 0.008565, 0.038349]
-DATA_MEAN_FEATURE = torch.tensor(DATA_MEAN_FEATURE).view(3,1,1)
-DATA_STD_FEATURE =  torch.tensor(DATA_STD_FEATURE).view(3,1,1)
+dict_feature = {'yplus_15':[[0.378425, -0.000372, -0.000095],
+                            [0.118740, 0.008565, 0.038349]],
+                'yplus_100':[[0.842697, -0.000849, -0.000099],
+                             [0.124568, 0.047473, 0.068853]]}
+
+DATA_MEAN_FEATURE = torch.tensor(dict_feature[INPUT_Y_TYPE][0]).view(3,1,1)
+DATA_STD_FEATURE =  torch.tensor(dict_feature[INPUT_Y_TYPE][1]).view(3,1,1)
 
 # 归一化参数target
 DATA_MEAN_TARGET = [0.006131, 0.003090, 0.198331]

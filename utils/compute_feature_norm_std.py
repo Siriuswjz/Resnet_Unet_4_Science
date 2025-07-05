@@ -38,4 +38,4 @@ if __name__ == "__main__":
     y_plus_levels = ["yplus_wall_data", "yplus_1_data", "yplus_2_data", "yplus_5_data",
                      "yplus_10_data", "yplus_15_data", "yplus_30_data", "yplus_70_data",
                      "yplus_100_data", "yplus_200_data"]
-    compute_mean_std(hdf5_paths,y_plus_levels[5])
+    compute_mean_std(hdf5_paths,y_plus_levels[8])

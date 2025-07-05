@@ -29,7 +29,7 @@ plot_formulate = {'friction_coefficient_2d': r'$Cf = \frac{2 \tau_w}{\rho_b u_b^
                   'heat_flux_2d': r'$qw = \kappa \frac{\partial T}{\partial y}$'}
 
 # 真实数据可视化绘图
-def visualize_h5_data(h5_path, idx, output_dir=None,vmin_fixed = None, vmax_fixed = None):
+def visualize_h5_data(h5_path, idx, output_dir=None,extrema=None):
     """
     Loads data from an HDF5 file and visualizes it using plot_2d_counter.
 
@@ -38,18 +38,10 @@ def visualize_h5_data(h5_path, idx, output_dir=None,vmin_fixed = None, vmax_fixe
         group_name (str): Name of the group within the HDF5 file to extract data from.
         output_dir (str, optional): Directory to save the plot. If None, plot will be shown.
     """
-    # 正则表达式 得到唯一索引
-    pattern = '_(\d+_\d+).hdf5$'
-    idx = re.search(pattern,h5_path).group(1)
-
     try:
         with h5py.File(h5_path, 'r') as hf:
-            if group_name not in hf:
-                print(f"错误: HDF5 文件中未找到组 '{group_name}'。")
-                return
-
+            group_name = "yplus_wall_data"
             data_group = hf[group_name]
-
             datasets_to_plot = ['friction_coefficient_2d', 'heat_flux_2d','pressure']
             data_dict = {}
             first_valid_ds = None
@@ -88,16 +80,16 @@ def visualize_h5_data(h5_path, idx, output_dir=None,vmin_fixed = None, vmax_fixe
 
                 # 调用 plot_2d_counter 函数 从一个预定义的标题字典 plot_titles 中查找与数据集名称 ds_name 对应的更友好的标题。
                 # 如果找不到（即 plot_titles 中没有 ds_name 这个键），它就直接使用 ds_name 作为标题。
-                if vmin_fixed and vmax_fixed:
+                if extrema is not None:
                     plot_2d_counter(data=data, mesh=mesh, ax=ax,formulate=plot_formulate.get(ds_name, ds_name),
-                                    vmin_fixed = vmin_fixed, vmax_fixed = vmax_fixed)
+                                    vmin_fixed = extrema[i][0], vmax_fixed = extrema[i][1])
                 else:
                     plot_2d_counter(data=data, mesh=mesh, ax=ax,formulate=plot_formulate.get(ds_name, ds_name))
             # --- 保存图像或显示 ---
             if output_dir:
                 if not os.path.exists(output_dir):
                     os.makedirs(output_dir)
-                filename = f"{idx}_{group_name}_visualization.png"
+                filename = f"{idx}_visualization.png"
                 output_file_path = os.path.join(output_dir, filename)
                 fig.savefig(output_file_path, dpi=300, bbox_inches='tight')
                 print(f"图像已成功保存至: {output_file_path}")
@@ -179,7 +171,6 @@ def visualize_error_data(error_data,idx,output_dir=None,yplus=None):
             ax.set_yticks([])
             ax.set_title(plot_titles.get(ds_name, ds_name))  # 即使数据不存在也设置标题
             continue
-        print(data.shape)
         plot_2d_counter(data=data, mesh=mesh, title = datasets_to_plot[i], ax = ax)
 
     # --- 保存图像或显示 ---

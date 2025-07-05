@@ -140,8 +140,8 @@ def main():
 
     # 2. 训练集和验证集 标准差和方差
     print(f"Loading dataset from {DATA_DIR}...")
-    train_path = os.path.join(DATA_DIR, INPUT_Y_TYPE,"train")
-    val_path = os.path.join(DATA_DIR, INPUT_Y_TYPE,"val")
+    train_path = os.path.join(DATA_DIR, f'{INPUT_Y_TYPE}_data',"train")
+    val_path = os.path.join(DATA_DIR, f'{INPUT_Y_TYPE}_data',"val")
     normalize_feature = Normalize(DATA_MEAN_FEATURE, DATA_STD_FEATURE)
     normalize_target = Normalize(DATA_MEAN_TARGET, DATA_STD_TARGET)
 

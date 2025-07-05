@@ -22,8 +22,8 @@ def predict_fn(loader, model, device):
     dict_idx_predictions_all = {}
 
     # 确保npz文件夹存在
-    output_npz_dir = './output/predictions/npz'
-    os.makedirs(output_npz_dir, exist_ok=True)
+    # output_npz_dir = './output/predictions/npz'
+    # os.makedirs(output_npz_dir, exist_ok=True)
 
     with torch.no_grad():
         for idx,(feature, _,location) in enumerate(loader):
@@ -38,8 +38,8 @@ def predict_fn(loader, model, device):
             predictions_raw = predictions_normalized * STD + MEAN  # [3,1400,800]
             idx_curr = idx_start + idx*step
             dict_idx_predictions_all[idx_curr] = predictions_raw
-            np.savez(f'{output_npz_dir}/{idx_curr}.npz',prediction=predictions_raw.cpu().numpy())
-            print(f"saved {idx_curr}.npz")
+            # np.savez(f'{output_npz_dir}/{idx_curr}.npz',prediction=predictions_raw.cpu().numpy())
+            # print(f"saved {idx_curr}.npz")
     return dict_idx_predictions_all
 
 def main():
@@ -56,6 +56,7 @@ def main():
 
     # 输入预处理
     feature_path = os.path.join(DATA_DIR, INPUT_Y_TYPE,"val")
+    print(f'Using {INPUT_Y_TYPE} datas')
     print(f"Feature path: {feature_path}")
     normalize_feature = Normalize(DATA_MEAN_FEATURE, DATA_STD_FEATURE)
     predict_dataset = PatchDataset(feature_path, transform_feature=normalize_feature)
@@ -70,17 +71,16 @@ def main():
     dict_idx_predictions_all = predict_fn(predict_loader, model, device)
     print("预测完毕")
     # 可视化输出目录
-    output_dir = f"./output/predictions/{INPUT_Y_TYPE}_data"
-    extrema = [[-0.002,0.025],
-               [-0.001,0.012],
-               [0.142,0.240],]
+    output_dir = f"./output/predictions/{INPUT_Y_TYPE}_extrema_data"
+    extrema_dict = {'yplus_15_1490': [[-0.001,0.022],[-0.000,0.011],[0.152,0.254]],
+                    'yplus_15_1448':[[-0.002,0.025],[-0.001,0.012],[0.142,0.240]]}
+
     for idx,prediction in dict_idx_predictions_all.items():
         prediction = prediction.to('cpu').numpy()
         if idx == 1448:
-            visualize_prediction_data(prediction_raw = prediction,idx = idx ,output_dir=output_dir,
-            extrema = extrema)
-        else:
-            visualize_prediction_data(prediction_raw = prediction,idx = idx,output_dir=output_dir)
+            visualize_prediction_data(prediction_raw = prediction,idx = idx ,output_dir=output_dir,extrema=extrema_dict['yplus_15_1448'])
+        # else:
+        #     visualize_prediction_data(prediction_raw = prediction,idx = idx,output_dir=output_dir)
 
 if __name__ == "__main__":
     main()
