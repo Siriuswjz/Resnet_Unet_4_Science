@@ -105,7 +105,7 @@ def visualize_h5_data(h5_path, idx, output_dir=None,extrema=None):
         print(f"绘图过程中发生未知错误: {e}")
 
 # 模型预测绘图
-def visualize_prediction_data(prediction_raw,idx,output_dir=None,extrema = None):
+def visualize_prediction_data(prediction_raw,idx,input_y_type,output_dir=None,extrema = None):
     datasets_to_plot = ['friction_coefficient_2d', 'heat_flux_2d', 'pressure']
     data_dict = {}
     for i,ds_name in enumerate(datasets_to_plot):
@@ -113,9 +113,8 @@ def visualize_prediction_data(prediction_raw,idx,output_dir=None,extrema = None)
     print("---成功读取预测数据---")
 
     print("---开始绘图---")
-    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(12, 14), constrained_layout=True)
-    fig.suptitle(f'Flow Field Visualization\n Group: yplus_wall_data',
-                 fontsize=16)
+    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(14, 14), constrained_layout=True)
+    fig.suptitle(f'Input {input_y_type} prediction',fontsize=16)
     ax_flat = axes.flatten()
 
     for i, ds_name in enumerate(datasets_to_plot):

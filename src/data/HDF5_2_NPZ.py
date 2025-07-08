@@ -55,7 +55,7 @@ if __name__ == "__main__":
                      "yplus_10_data", "yplus_15_data", "yplus_30_data", "yplus_70_data",
                      "yplus_100_data", "yplus_200_data"]
 
-    yplus = y_plus_levels[8]
+    yplus = y_plus_levels[3]
     if os_name == 'nt':
         hdf5_root = "../../data/HDF5"
         save_root = f"../../data/NPZ/{yplus}"

@@ -12,20 +12,28 @@ else:
 print(os_name)
 # --- 通用设置 ---
 PROJECT_NAME = "Resnet_Unet"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
 SEED = 42 # 随机种子，用于复现性
 NUM_WORKERS = 4
 
 # 输入属性
-INPUT_Y_TYPE = "yplus_15"
+INPUT_Y_TYPE = "yplus_100"
 INPUT_HEIGHT = 1400
 INPUT_WIDTH = 800
 INPUT_CHANNELS = 3
 OUTPUT_CLASSES = 3
 
 # 归一化参数feature
-dict_feature = {'yplus_15':[[0.378425, -0.000372, -0.000095],
+dict_feature = {'yplus_1':[[0.045352, -0.000001, -0.000010],
+                           [0.018032, 0.000491, 0.006800]],
+                'yplus_5':[[0.155256, -0.000038, -0.000034],
+                           [0.056940, 0.001948, 0.019795]],
+                'yplus_15':[[0.378425, -0.000372, -0.000095],
                             [0.118740, 0.008565, 0.038349]],
+                'yplus_30': [[0.577761, -0.000800, -0.000184],
+                             [0.149489, 0.019171, 0.052471]],
+                'yplus_70':[[0.784640, -0.000958, -0.000196],
+                            [0.139977, 0.039637, 0.066212]],
                 'yplus_100':[[0.842697, -0.000849, -0.000099],
                              [0.124568, 0.047473, 0.068853]]}
 

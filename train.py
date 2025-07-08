@@ -257,7 +257,7 @@ def main():
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
                         'loss': best_val_loss,
-                    }, filename=f"{MODEL_NAME}_best_model_{start_time}.pth.tar")
+                    }, filename=f"{MODEL_NAME}_{INPUT_Y_TYPE}_{start_time}.pth.tar")
             else:
                 print(f"Skipping validation for this epoch (eval interval is {EVAL_INTERVAL}).")
 

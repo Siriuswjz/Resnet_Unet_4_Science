@@ -50,12 +50,12 @@ def main():
     model = ResNet_UNet(in_channels=INPUT_CHANNELS, num_classes=OUTPUT_CLASSES, backbone=BACKBONE_NAME).to(device)
 
     # 权重
-    checkpoint_path = "./output/checkpoints/ResnetUnet_best_model_20250703_181153.pth.tar"
+    checkpoint_path = "./output/checkpoints/ResnetUnet_best_model_20250707_161514.pth.tar"
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
     # 输入预处理
-    feature_path = os.path.join(DATA_DIR, INPUT_Y_TYPE,"val")
+    feature_path = os.path.join(DATA_DIR, f'{INPUT_Y_TYPE}_data',"val")
     print(f'Using {INPUT_Y_TYPE} datas')
     print(f"Feature path: {feature_path}")
     normalize_feature = Normalize(DATA_MEAN_FEATURE, DATA_STD_FEATURE)
@@ -72,15 +72,19 @@ def main():
     print("预测完毕")
     # 可视化输出目录
     output_dir = f"./output/predictions/{INPUT_Y_TYPE}_extrema_data"
-    extrema_dict = {'yplus_15_1490': [[-0.001,0.022],[-0.000,0.011],[0.152,0.254]],
-                    'yplus_15_1448':[[-0.002,0.025],[-0.001,0.012],[0.142,0.240]]}
+    extrema_dict = {'yplus_30_1490': [[-0.001,0.022],[-0.000,0.011],[0.152,0.254]],
+                    'yplus_30_1448':[[-0.002,0.025],[-0.001,0.012],[0.142,0.240]],
+                    'yplus_15_1490': [[-0.001,0.022],[-0.000,0.011],[0.152,0.254]],
+                    'yplus_15_1448':[[-0.002,0.025],[-0.001,0.012],[0.142,0.240]],
+                    'yplus_100_1490':[[-0.001,0.022],[-0.000,0.011],[0.152,0.254]],
+                    'yplus_100_1448':[[-0.002,0.025],[-0.001,0.012],[0.142,0.240]],}
 
     for idx,prediction in dict_idx_predictions_all.items():
         prediction = prediction.to('cpu').numpy()
-        if idx == 1448:
-            visualize_prediction_data(prediction_raw = prediction,idx = idx ,output_dir=output_dir,extrema=extrema_dict['yplus_15_1448'])
+        if idx == 1490:
+            visualize_prediction_data(prediction_raw = prediction,input_y_type = INPUT_Y_TYPE,idx = idx ,output_dir=output_dir,extrema = extrema_dict['yplus_30_1490'])
         # else:
-        #     visualize_prediction_data(prediction_raw = prediction,idx = idx,output_dir=output_dir)
+        #     visualize_prediction_data(prediction_raw = prediction,input_y_type=INPUT_Y_TYPE,idx = idx,output_dir=output_dir)
 
 if __name__ == "__main__":
     main()

@@ -13,6 +13,8 @@ import glob
 import numpy as np
 from utils.losses import get_loss_function
 
+pattern = '_(\d+)_(\d+)'
+
 def predict_fn(loader, model, device):
     model.eval()
     indexes=[]
@@ -39,8 +41,8 @@ def predict_fn(loader, model, device):
     return dict_idx_predictions_all
 
 def truth_fn(hdf5_paths,device):
-    pattern = '_(\d+)_(\d+)'
     dict_idx_truth_all = {}
+    dict_idx_rms_all = {}
     for hdf5_path in hdf5_paths:
         with h5py.File(hdf5_path, 'r') as f:
             # 得到索引 比如1490
@@ -55,12 +57,14 @@ def truth_fn(hdf5_paths,device):
             # 组
             group = f["yplus_wall_data"]
             friction_coefficient_2d = group['friction_coefficient_2d'][:].astype(np.float32) # type: ignore
+            h, w = friction_coefficient_2d.shape
             heat_flux_2d = group['heat_flux_2d'][:].astype(np.float32) # type: ignore
             p = group['pressure'][:].astype(np.float32) # type: ignore
             target = np.stack([friction_coefficient_2d, heat_flux_2d, p], axis=0)
-            target_tensor = torch.from_numpy(target).float().to(device)
-            dict_idx_truth_all[idx] = target_tensor
-    return dict_idx_truth_all
+            target_rms = np.sqrt(np.sum(target ** 2, axis=(1, 2)) / (h * w))
+            dict_idx_truth_all[idx] = target
+            dict_idx_rms_all[idx] = target_rms
+    return dict_idx_truth_all, dict_idx_rms_all
 
 def main():
     # 设备
@@ -70,13 +74,13 @@ def main():
     model = ResNet_UNet(in_channels=INPUT_CHANNELS, num_classes=OUTPUT_CLASSES, backbone=BACKBONE_NAME).to(device)
 
     # 权重
-    checkpoint_path = "./output/checkpoints/ResnetUnet_best_model_20250703_181153.pth.tar"
+    checkpoint_path = "./output/checkpoints/ResnetUnet_best_model_20250704_182554.pth.tar"
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
     # 输入预处理
     print(f"Using {INPUT_Y_TYPE} datas!!!!!!")
-    feature_path = os.path.join(DATA_DIR, INPUT_Y_TYPE,"val")
+    feature_path = os.path.join(DATA_DIR, f'{INPUT_Y_TYPE}_data',"val")
     print(f"Feature path: {feature_path}")
     normalize_feature = Normalize(DATA_MEAN_FEATURE, DATA_STD_FEATURE)
     predict_dataset = PatchDataset(feature_path, transform_feature=normalize_feature)
@@ -94,7 +98,7 @@ def main():
     # 误差函数 mse
     print(f"Using loss function: mae")
     loss_kwargs = {}
-    mae_fn = get_loss_function('mae', **loss_kwargs)
+    loss_fn = get_loss_function('mae', **loss_kwargs)
 
     # hdf5目录
     os_name = os.name
@@ -107,38 +111,63 @@ def main():
     # 得到测试集
     split_idx = int(len(hdf5_paths) * 0.8)
     val_hdf5_paths = hdf5_paths[split_idx:]
-    dict_idx_truth_all = truth_fn(val_hdf5_paths, device)
+    dict_idx_truth_all,dict_idx_rms_all = truth_fn(val_hdf5_paths, device)
     print("真实数据保存完毕")
 
     # 可视化输出目录
     output_dir = f"./output/error_visualization/{INPUT_Y_TYPE}_data"
     # 误差 mae分析目录
     output_dir_error =  f"./output/errors"
-    total_cf,total_qw,total_p =0,0,0
-    with open(os.path.join(output_dir_error, f"{INPUT_Y_TYPE}.txt"), "w") as f:
+    # 初始化总 MAE 累加器
+    total_mae = np.zeros(3)  # 使用 NumPy 数组进行更简洁的累加
+
+    with open(os.path.join(output_dir_error, f"{INPUT_Y_TYPE}_rms.txt"), "w") as f:
+        # 遍历索引，获取预测值和真实值
         for idx in dict_idx_predictions_all:
-            prediction = dict_idx_predictions_all[idx]
-            # if idx ==1490:
-            #     visualize_prediction_data(prediction_raw=prediction.to('cpu').numpy(),idx=idx,output_dir=output_dir)
-            truth = dict_idx_truth_all[idx]
-            # if idx ==1490:
-            #     visualize_prediction_data(prediction_raw=truth.to('cpu').numpy(),idx=idx,output_dir=output_dir)
-            mae_cf = mae_fn(prediction[0], truth[0])
-            mae_qw = mae_fn(prediction[1], truth[1])
-            mae_p = mae_fn(prediction[2], truth[2])
-            total_cf += mae_cf
-            total_qw += mae_qw
-            total_p += mae_p
+            prediction_np = dict_idx_predictions_all[idx].detach().cpu().numpy()
+            truth_np = dict_idx_truth_all[idx]
+            rms_np = dict_idx_rms_all[idx]
+            # if idx == 1490:
+            #     visualize_prediction_data(prediction_raw=prediction_np, input_y_type=INPUT_Y_TYPE,idx=idx, output_dir=output_dir)
+
+            # 计算绝对误差 三维
+            error_abs = np.abs(prediction_np - truth_np)
+            _, h, w = error_abs.shape
+
+            # error_abs.sum(axis=(1, 2)) 对 H 和 W 维度进行求和 (结果: (3,))
+            error_mae = (error_abs.sum(axis=(1, 2)) / (h * w))/ rms_np
+
+            # 累加总 MAE
+            total_mae += error_mae
+
+            # 提取单个 MAE 值用于日志记录
+            mae_cf, mae_qw, mae_p = error_mae
+            max_error = error_abs.max()
+
+            # 记录单个 MAE 值
             f.write(f'time:{idx}---mae_cf:{mae_cf:.6f}, mae_qw:{mae_qw:.6f}, mae_p:{mae_p:.6f}---\n')
-            error_cf = torch.abs((truth[0]- prediction[0])) / mae_cf
-            error_qw = torch.abs((truth[1]- prediction[1])) / mae_qw
-            error_p = torch.abs((truth[2]- prediction[2])) / mae_p
-            error_data = torch.stack([error_cf, error_qw, error_p], dim=0).to('cpu').numpy()
-            visualize_error_data(error_data = error_data, idx = idx ,output_dir=output_dir,yplus = INPUT_Y_TYPE)
-        total_cf/=len(predict_loader)
-        total_qw/=len(predict_loader)
-        total_p/=len(predict_loader)
-        f.write(f'mean---mean_cf:{total_cf:.6f}, mean_qw:{total_qw:.6f}, mean_p:{total_p:.6f}\n')
+
+            # # 对每个通道的误差进行归一化以便可视化
+            # normalized_errors = []
+            # for i in range(error_abs.shape[0]):  # 遍历通道 (0, 1, 2)
+            #     curr_error = error_abs[i]
+            #     max_error = curr_error.max()
+            #     if max_error > 1e-6:
+            #         normalized_error = curr_error / max_error
+            #     else:
+            #         normalized_error = np.zeros_like(curr_error)
+            #
+            #     normalized_errors.append(normalized_error)
+            #
+            # # 将归一化后的误差重新堆叠成一个 (3, H, W) 数组用于可视化
+            # error_data_for_viz = np.stack(normalized_errors, axis=0)
+            # visualize_error_data(error_data=error_abs, idx=idx, output_dir=output_dir, yplus=INPUT_Y_TYPE)
+
+        # 计算总体平均 MAE total_mae 是一个 (3,) 形状的求和数组，除以样本数量
+        mean_overall_mae = total_mae / len(predict_loader)
+        mean_cf, mean_qw, mean_p = mean_overall_mae
+        f.write(f'mean---mean_cf:{mean_cf:.6f}, mean_qw:{mean_qw:.6f}, mean_p:{mean_p:.6f}\n')
+        print('fine')
 
 
 
