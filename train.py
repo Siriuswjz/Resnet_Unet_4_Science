@@ -189,25 +189,25 @@ def main():
         raise ValueError(f"Unsupported optimizer: {OPTIMIZER_TYPE}")
 
     # 6. 学习率调度器
-    # scheduler = None
-    # if USE_SCHEDULER:
-    #     scheduler_config = SCHEDULER_CONFIG.get(SCHEDULER_TYPE)
-    #     if scheduler_config is None:
-    #         raise ValueError(f"Scheduler config for {SCHEDULER_TYPE} not found in config.py")
-    #
-    #     print(f"Using scheduler: {SCHEDULER_TYPE}")
-    #     if SCHEDULER_TYPE == "CosineAnnealingLR":
-    #         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer,
-    #                                                          T_max=scheduler_config["T_max"],
-    #                                                          eta_min=scheduler_config["eta_min"])
-    #     elif SCHEDULER_TYPE == "StepLR":
-    #         scheduler = optim.lr_scheduler.StepLR(optimizer,
-    #                                               step_size=scheduler_config["step_size"],
-    #                                               gamma=scheduler_config["gamma"])
-    #     else:
-    #         print(
-    #             f"Warning: Scheduler type {SCHEDULER_TYPE} is not explicitly handled, using default PyTorch behavior.")
-    #         # For other schedulers, you might need to add specific instantiation logic
+    scheduler = None
+    if USE_SCHEDULER:
+        scheduler_config = SCHEDULER_CONFIG.get(SCHEDULER_TYPE)
+        if scheduler_config is None:
+            raise ValueError(f"Scheduler config for {SCHEDULER_TYPE} not found in config.py")
+
+        print(f"Using scheduler: {SCHEDULER_TYPE}")
+        if SCHEDULER_TYPE == "CosineAnnealingLR":
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                             T_max=scheduler_config["T_max"],
+                                                             eta_min=scheduler_config["eta_min"])
+        elif SCHEDULER_TYPE == "StepLR":
+            scheduler = optim.lr_scheduler.StepLR(optimizer,
+                                                  step_size=scheduler_config["step_size"],
+                                                  gamma=scheduler_config["gamma"])
+        else:
+            print(
+                f"Warning: Scheduler type {SCHEDULER_TYPE} is not explicitly handled, using default PyTorch behavior.")
+            # For other schedulers, you might need to add specific instantiation logic
 
     # 7. 混合精度训练 Scaler
     scaler = torch.cuda.amp.GradScaler()
@@ -234,7 +234,8 @@ def main():
             log_f.write(f"\nEpoch {epoch + 1}/{NUM_EPOCHS}\n")
 
             # 训练阶段
-            train_loss,loss_cf,loss_qw,loss_p = train_fn(train_loader, model, optimizer, loss_fn, scaler, device)
+            train_loss,loss_cf,loss_qw,loss_p = train_fn(loader=train_loader, model = model, optimizer=optimizer,
+                                     loss_fn = loss_fn, device = device,scaler = scaler,scheduler = scheduler)
             losses_all.append(train_loss)
             losses_cf.append(loss_cf)
             losses_qw.append(loss_qw)

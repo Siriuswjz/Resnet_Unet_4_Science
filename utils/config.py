@@ -17,7 +17,7 @@ SEED = 42 # 随机种子，用于复现性
 NUM_WORKERS = 4
 
 # 输入属性
-INPUT_Y_TYPE = "yplus_100"
+INPUT_Y_TYPE = "yplus_15"
 INPUT_HEIGHT = 1400
 INPUT_WIDTH = 800
 INPUT_CHANNELS = 3
@@ -53,19 +53,18 @@ PRETRAINED_ENCODER = False
 
 # --- 训练设置 ---
 # BATCH_SIZE = 32 # 训练批次大小
-LEARNING_RATE = 1e-4 # 初始学习率
-NUM_EPOCHS = 100 # 训练轮数
+LEARNING_RATE = 1e-3 # 初始学习率
+NUM_EPOCHS = 200 # 训练轮数
 OPTIMIZER_TYPE = "Adam"
 LOSS_FN_TYPE = "mse"
-# HUBER_LOSS_BETA = 1.0 # 如果使用Huber Loss，设置beta值
 
 # 学习率调度器设置
-# USE_SCHEDULER = True
-# SCHEDULER_TYPE = "CosineAnnealingLR" # 例如 CosineAnnealingLR, StepLR, ReduceLROnPlateau
-# SCHEDULER_CONFIG = {
-#     "CosineAnnealingLR": {"T_max": NUM_EPOCHS, "eta_min": 1e-6},
-#     "StepLR": {"step_size": 20, "gamma": 0.1},
-# }
+USE_SCHEDULER = True
+SCHEDULER_TYPE = "StepLR" # 例如 CosineAnnealingLR, StepLR, ReduceLROnPlateau
+SCHEDULER_CONFIG = {
+    "CosineAnnealingLR": {"T_max": NUM_EPOCHS, "eta_min": 1e-6},
+    "StepLR": {"step_size": 20, "gamma": 0.1},
+}
 
 # --- 验证/评估设置 ---
 SAVE_BEST_MODEL = True # 是否保存性能最好的模型

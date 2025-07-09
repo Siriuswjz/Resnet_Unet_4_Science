@@ -51,7 +51,7 @@ def main():
     device = torch.device(DEVICE)
     model = ResNet_UNet(in_channels=INPUT_CHANNELS, num_classes=OUTPUT_CLASSES, backbone='resnet50').to(device)
     # 权重
-    checkpoint_path = "./output/checkpoints/ResnetUnet_yplus100_20250704_182554.pth.tar"
+    checkpoint_path = "./output/checkpoints/ResnetUnet_yplus5_20250707_162100.pth.tar"
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -81,7 +81,7 @@ def main():
                     'yplus_100_1490':[[-0.001,0.022],[-0.000,0.011],[0.152,0.254]],
                     'yplus_100_1448':[[-0.002,0.025],[-0.001,0.012],[0.142,0.240]]}
     # 预测输出目录
-    output_dir = f"./output/predictions/yplus100_1400_800_data"
+    output_dir = f"./output/predictions/{INPUT_Y_TYPE}_1400_800_data"
     # 误差输出目录
     output_dir_error = f"./output/errors_no_patch"
     os.makedirs(output_dir_error,exist_ok=True)

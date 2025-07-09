@@ -74,7 +74,7 @@ def main():
     model = ResNet_UNet(in_channels=INPUT_CHANNELS, num_classes=OUTPUT_CLASSES, backbone=BACKBONE_NAME).to(device)
 
     # 权重
-    checkpoint_path = "./output/checkpoints/ResnetUnet_best_model_20250704_182554.pth.tar"
+    checkpoint_path = "./output/checkpoints/ResnetUnet_yplus70_20250707_210926.pth.tar"
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
