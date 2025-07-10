@@ -211,3 +211,4 @@ output/
 /data/
 *.onnx
 *.dat
+/.idea
