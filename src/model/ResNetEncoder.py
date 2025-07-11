@@ -94,7 +94,7 @@ class ResNetEncoder(nn.Module):
         else:
             raise ValueError("Unsupported block type.")
 
-        # 初始化权重 (与你原代码相同)
+        # 初始化权重
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')

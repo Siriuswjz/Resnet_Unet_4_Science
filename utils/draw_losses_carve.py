@@ -97,7 +97,7 @@ def plot_val(log_path,input_yplus):
 
 if __name__ == "__main__":
     logs_dir = "../output/logs"
-    log_path = "training_log_20250709_203827.txt"
+    log_path = "training_log_20250703_181153.txt"
     input_yplus = 15
     log_path = os.path.join(logs_dir,log_path)
     # plot_train(log_path,input_yplus)
