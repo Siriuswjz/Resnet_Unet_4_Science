@@ -4,11 +4,7 @@ import torch.nn.functional as F
 
 
 class UpsampleBlock(nn.Module):
-    """
-    U-Net 解码器中的一个上采样块。
-    包含双线性插值上采样，然后是与跳跃连接拼接，最后是两个卷积层。
-    """
-    def __init__(self, in_channels, skip_channels, out_channels):
+    def __init__(self, in_channels, skip_channels, out_channels,is_upblock1=False):
         """
         Args:
             in_channels (int): 来自上一解码器层（或编码器瓶颈层）的输入通道数。
@@ -16,41 +12,28 @@ class UpsampleBlock(nn.Module):
             out_channels (int): 本块最终的输出通道数。
         """
         super(UpsampleBlock, self).__init__()
-
-        # 拼接后的通道数 = in_channels (来自上采样) + skip_channels (来自跳跃连接)
-        # 卷积层将处理这些拼接后的特征，并学习融合
+        self.upconv = nn.ConvTranspose2d(in_channels=in_channels,out_channels=in_channels,kernel_size=3,stride=2,padding=1,output_padding=1)
         self.conv1 = nn.Conv2d(in_channels + skip_channels, out_channels, kernel_size=3, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
-
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(out_channels)
-        # 第二个 ReLU 在 forward 中应用
+        self.is_upblock1=is_upblock1
 
     def forward(self, x, skip_feature):
-        """
-        Args:
-            x (torch.Tensor): 来自上一解码器层（或瓶颈层）的特征图。
-                              它的分辨率是当前 skip_feature 的一半。
-            skip_feature (torch.Tensor): 来自对应编码器层的跳跃连接特征图。
-        """
         # 1. 上采样 (双线性插值)
         # target_size = skip_feature.shape[2:] 获取跳跃连接特征图的高度和宽度，确保精确匹配
-        x = F.interpolate(x, size=skip_feature.shape[2:], mode='bilinear', align_corners=True)
-
-        # 2. 跳跃连接：拼接特征图
-        # torch.cat 在通道维度 (dim=1) 上拼接
+        # x = F.interpolate(x, size=skip_feature.shape[2:], mode='bilinear', align_corners=True)
+        if self.is_upblock1 is False:
+            x = self.upconv(x)
+        # 2. 跳跃连接：拼接特征图 torch.cat 在通道维度 (dim=1) 上拼接
         x = torch.cat([x, skip_feature], dim=1)
-
-        # 3. 卷积操作
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-
         x = self.conv2(x)
         x = self.bn2(x)
         x = self.relu(x)
-
         return x
 
 
@@ -70,7 +53,7 @@ class UNetDecoder(nn.Module):
         super(UNetDecoder, self).__init__()
 
         # 解码器从最深层开始，并逐步上采样
-        # 编码器特征列表的顺序是：[stage0_maxpool, stage1_layer1, stage2_layer2, stage3_layer3, stage4_layer4_bottleneck]
+        # 编码器特征列表的顺序是：[stage0, stage1_layer1, stage2_layer2, stage3_layer3, stage4_layer4_bottleneck]
         # 解码器需要逆序处理这些特征，并从 features[4] (bottleneck) 开始
 
         # up_block4: 从 bottleneck (features[4]) 上采样，跳跃连接来自 layer3 (features[3])
@@ -94,21 +77,18 @@ class UNetDecoder(nn.Module):
             out_channels=encoder_out_channels[1]  # 256
         )
 
-        # up_block1: 从 up_block2 的输出上采样，跳跃连接来自 maxpool 后的特征 (features[0])
+        # up_block1: 从 up_block2 的输出上采样，跳跃连接来自7*7卷积后的特征 (features[0])
         self.up_block1 = UpsampleBlock(
             in_channels=encoder_out_channels[1],  # 256 (来自上一个解码块)
-            skip_channels=encoder_out_channels[0],  # 64 (来自 maxpool)
-            out_channels=encoder_out_channels[0]  # 64
+            skip_channels=encoder_out_channels[0],  # 64 (来自 7*7 卷积)
+            out_channels=encoder_out_channels[0],is_upblock1=True  # 64
         )
 
         # 最终上采样和输出层
         # 经过 up_block1 后，特征图分辨率已是原始输入分辨率的一半 (例如 H/2, W/2)。
         # 此时通道数是 encoder_out_channels[0] (64)。
-        # 我们需要将其恢复到原始输入分辨率 (H, W)，并映射到 num_classes。
-        self.final_upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-
-        # 最后的卷积层，将通道数从 64 映射到 num_classes (例如 2 用于摩阻场)
-        # 注意：这里不带激活函数、BN，因为是回归任务的最终输出。
+        # 将其恢复到原始输入分辨率 (H, W)，并映射到 num_classes。
+        self.final_upsample = nn.ConvTranspose2d(encoder_out_channels[0],encoder_out_channels[0],kernel_size=3,stride=2,padding=1,output_padding=1)
         self.final_conv = nn.Conv2d(encoder_out_channels[0], num_classes, kernel_size=1)
 
     def forward(self, encoder_features):
